@@ -14,6 +14,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import fr.skyost.imgsender.utils.ImgMessage;
 import fr.skyost.imgsender.utils.ImgMessage.ImgChar;
+import fr.skyost.imgsender.utils.MetricsLite;
+import fr.skyost.imgsender.utils.Updater;
+import fr.skyost.imgsender.utils.Updater.UpdateType;
 import fr.skyost.imgsender.tasks.Downloader;
 
 public class IMGSender extends JavaPlugin {
@@ -39,6 +42,10 @@ public class IMGSender extends JavaPlugin {
 				config.ImageSize_Max = 25;
 				Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "The MinImageSize must be inferior than 25 ! It has been reverted back to 25.");
 			}
+			if(config.Config_EnableUpdater) {
+				new Updater(this, 70595, this.getFile(), UpdateType.DEFAULT, true);
+			}
+			new MetricsLite(this).start();
 			config.save();
 			this.getCommand("img").setUsage(ChatColor.RED + "/img [url] [size] [char] [player].");
 		}
@@ -72,6 +79,12 @@ public class IMGSender extends JavaPlugin {
 						sender.sendMessage(ChatColor.RED + ".wbmp");
 						sender.sendMessage(ChatColor.RED + ".gif");
 						return true;
+					}
+					for(String word : config.Config_Unauthorized_Words) {
+						if(url.contains(word)) {
+							sender.sendMessage(ChatColor.RED + "Your URL contains an unauthorized word : '" + word + "'.");
+							return true;
+						}
 					}
 				}
 				if(args.length >= 2) {
@@ -139,6 +152,17 @@ public class IMGSender extends JavaPlugin {
 			ex.printStackTrace();
 		}
 		return true;
+	}
+	
+	public File getCacheDir() {
+		return cacheDir;
+	}
+	
+	public boolean isCached(final String imageURL) {
+		if(cache.get(imageURL) != null) {
+			return true;
+		}
+		return false;
 	}
 
 }
