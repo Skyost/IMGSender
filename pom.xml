@@ -4,7 +4,7 @@
 
     <groupId>fr.skyhost</groupId>
     <artifactId>IMGSender</artifactId>
-    <version>0.2</version>
+    <version>0.3</version>
     <packaging>jar</packaging>
 
     <name>IMGSender</name>
