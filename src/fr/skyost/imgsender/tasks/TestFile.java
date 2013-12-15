@@ -27,7 +27,6 @@ public class TestFile implements Runnable {
 		}
 		catch(Exception ex) {
 			ex.printStackTrace();
-			isImage = false;
 		}
 	}
 	
