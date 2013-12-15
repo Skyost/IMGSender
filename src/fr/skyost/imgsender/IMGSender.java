@@ -12,13 +12,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import fr.skyost.imgsender.utils.ImgMessage;
-import fr.skyost.imgsender.utils.ImgMessage.ImgChar;
-import fr.skyost.imgsender.utils.MetricsLite;
-import fr.skyost.imgsender.utils.Updater;
-import fr.skyost.imgsender.utils.Updater.UpdateType;
 import fr.skyost.imgsender.tasks.Downloader;
 import fr.skyost.imgsender.tasks.TestFile;
+import fr.skyost.imgsender.utils.ImgMessage;
+import fr.skyost.imgsender.utils.MetricsLite;
+import fr.skyost.imgsender.utils.Updater;
+import fr.skyost.imgsender.utils.ImgMessage.ImgChar;
+import fr.skyost.imgsender.utils.Updater.UpdateType;
 
 public class IMGSender extends JavaPlugin {
 	
@@ -70,7 +70,7 @@ public class IMGSender extends JavaPlugin {
 				ImgChar imgChar = config.Default_Char;
 				if(args.length >= 1) {
 					url = args[0];
-					String lowerUrl = url.toLowerCase();
+//					String lowerUrl = url.toLowerCase();
 //					if(!(lowerUrl.endsWith("jpeg") || lowerUrl.endsWith("jpg") || lowerUrl.endsWith("png") || lowerUrl.endsWith("bmp") || lowerUrl.endsWith("wbmp") || lowerUrl.endsWith("gif"))) {
 //						sender.sendMessage(ChatColor.RED + "Please enter an url which ends with only :");
 //						sender.sendMessage(ChatColor.RED + ".jpeg");
@@ -127,15 +127,15 @@ public class IMGSender extends JavaPlugin {
 							file.delete();
 						}
 						cache.clear();
-					}
-                                        
+					}              
 					new Downloader(url, new File(cacheDir, String.valueOf(cache.size() + 1)), sender).run();
-                                        TestFile checkImage = new TestFile(new File(cacheDir, String.valueOf(cache.size() + 1)));
-                                        if (checkImage.isImage()) {
-                                                cache.put(url, cache.size() + 1);
-                                        } else {
-                                                sender.sendMessage(ChatColor.RED + "URL is not an Image");
-                                        }
+                	TestFile checkImage = new TestFile(new File(cacheDir, String.valueOf(cache.size() + 1)));
+                   	if(checkImage.isImage()) {
+                   		cache.put(url, cache.size() + 1);
+                   	}
+                   	else {
+                   		sender.sendMessage(ChatColor.RED + "URL is not an image.");
+                   	}
 				}
 				ChatColor[][] colors = ImgMessage.toChatColorArray(ImageIO.read(new File(cacheDir, String.valueOf(cache.get(url)))), size);
 				String[] lines = ImgMessage.toImgMessage(colors, imgChar.getChar());
