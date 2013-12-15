@@ -25,9 +25,9 @@ public class ConfigFile extends Config {
 	public ConfigFile(Plugin plugin) {
 		CONFIG_FILE = new File(plugin.getDataFolder(), "config.yml");
 		CONFIG_HEADER = "##################################################### #";
-		CONFIG_HEADER += "\n             IMGSender Configuration                  #";
+		CONFIG_HEADER += "\n			 IMGSender Configuration				  #";
 		CONFIG_HEADER += "\n See http://dev.bukkit.org/bukkit-plugins/img-sender  #";
-		CONFIG_HEADER += "\n              for more informations.                  #";
+		CONFIG_HEADER += "\n			  for more informations.				  #";
 		CONFIG_HEADER += "\n##################################################### #";
 		
 		Config_Unauthorized_Words.add("porn");

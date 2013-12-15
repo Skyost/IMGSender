@@ -127,15 +127,15 @@ public class IMGSender extends JavaPlugin {
 							file.delete();
 						}
 						cache.clear();
-					}              
+					}			  
 					new Downloader(url, new File(cacheDir, String.valueOf(cache.size() + 1)), sender).run();
-                	TestFile checkImage = new TestFile(new File(cacheDir, String.valueOf(cache.size() + 1)));
-                   	if(checkImage.isImage()) {
-                   		cache.put(url, cache.size() + 1);
-                   	}
-                   	else {
-                   		sender.sendMessage(ChatColor.RED + "URL is not an image.");
-                   	}
+					TestFile checkImage = new TestFile(new File(cacheDir, String.valueOf(cache.size() + 1)));
+				   	if(checkImage.isImage()) {
+				   		cache.put(url, cache.size() + 1);
+				   	}
+				   	else {
+				   		sender.sendMessage(ChatColor.RED + "URL is not an image.");
+				   	}
 				}
 				ChatColor[][] colors = ImgMessage.toChatColorArray(ImageIO.read(new File(cacheDir, String.valueOf(cache.get(url)))), size);
 				String[] lines = ImgMessage.toImgMessage(colors, imgChar.getChar());
