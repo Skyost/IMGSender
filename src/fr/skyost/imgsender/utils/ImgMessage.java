@@ -2,11 +2,9 @@ package fr.skyost.imgsender.utils;
 
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
-
 
 public class ImgMessage {
 	
@@ -83,6 +81,13 @@ public class ImgMessage {
 		for (String line : lines) {
 			player.sendMessage(line);
 		}
+	}
+	
+	public static String[] getImgMessage(BufferedImage image, int height, char imgchar, String... text) {
+		ChatColor[][] colors = toChatColorArray(image, height);
+		String[] lines = toImgMessage(colors, imgchar);
+		lines = appendTextToImg(lines, text);
+		return lines;
 	}
 
 	private static double colorDiff(Color c1, Color c2) {

@@ -6,7 +6,7 @@ website: http://www.skyost.eu
 commands:
  img:
   description: Send an image.
-  usage: /img [url] [size] [char] [player].
+  usage: /img [url] [size] [char] [text] [player].
   permission: img.send
 permissions:
   img.send:

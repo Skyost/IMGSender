@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
@@ -14,18 +15,22 @@ public class Downloader implements Runnable {
 	
 	private String site;
 	private File pathTo;
-	private CommandSender logger;
+	private CommandSender sender;
 	
-	public Downloader(final String site, final File pathTo, final CommandSender logger) {
+	public Downloader(final String site, final File pathTo, final CommandSender sender) {
 		this.site = site;
 		this.pathTo = pathTo;
-		this.logger = logger;
+		this.sender = sender;
 	}
 
 	@Override
 	public void run() {
 		try {
-			logger.sendMessage(ChatColor.GOLD + "Downloading " + site + "...");
+			final String senderName = sender.getName();
+			if(!senderName.equals("CONSOLE")) {
+				Bukkit.getConsoleSender().sendMessage(senderName + " is downloading '" + site + "'...");
+			}
+			sender.sendMessage(ChatColor.GOLD + "Downloading " + site + "...");
 			URL url = new URL(site);
 			HttpURLConnection connection = (HttpURLConnection)url.openConnection();
 			float totalDataRead = 0;
@@ -40,7 +45,7 @@ public class Downloader implements Runnable {
 			}  
 			bout.close();
 			in.close();
-			logger.sendMessage(ChatColor.GOLD + "Done !");
+			sender.sendMessage(ChatColor.GOLD + "Done !");
 		}
 		catch(Exception ex) {
 			ex.printStackTrace();

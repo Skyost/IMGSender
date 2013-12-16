@@ -1,5 +1,6 @@
 package fr.skyost.imgsender;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.HashMap;
 
@@ -13,12 +14,19 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import fr.skyost.imgsender.tasks.Downloader;
-import fr.skyost.imgsender.tasks.TestFile;
 import fr.skyost.imgsender.utils.ImgMessage;
 import fr.skyost.imgsender.utils.MetricsLite;
 import fr.skyost.imgsender.utils.Updater;
 import fr.skyost.imgsender.utils.ImgMessage.ImgChar;
 import fr.skyost.imgsender.utils.Updater.UpdateType;
+
+/**
+ * IMGSender main class.
+ * <br>Thanks to <b>Goblom</b> for the help !
+ * 
+ * @author Skyost.
+ *
+ */
 
 public class IMGSender extends JavaPlugin {
 	
@@ -39,16 +47,12 @@ public class IMGSender extends JavaPlugin {
 				config.ImageSize_Min = 5;
 				Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "The MinImageSize must be superior than 5 ! It has been reverted back to 5.");
 			}
-			if(config.ImageSize_Max > 25) {
-				config.ImageSize_Max = 25;
-				Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "The MinImageSize must be inferior than 25 ! It has been reverted back to 25.");
-			}
 			if(config.Config_EnableUpdater) {
 				new Updater(this, 70595, this.getFile(), UpdateType.DEFAULT, true);
 			}
 			new MetricsLite(this).start();
 			config.save();
-			this.getCommand("img").setUsage(ChatColor.RED + "/img [url] [size] [char] [player].");
+			this.getCommand("img").setUsage(ChatColor.RED + "/img [url] [size] [char] [text] [player].");
 		}
 		catch(Exception ex) {
 			ex.printStackTrace();
@@ -65,22 +69,12 @@ public class IMGSender extends JavaPlugin {
 		try {
 			if(cmd.getName().equalsIgnoreCase("img")) {
 				String url = config.Default_URL;
-				Player player = null;
 				int size = config.Default_Size;
 				ImgChar imgChar = config.Default_Char;
+				String text = null;
+				Player player = null;
 				if(args.length >= 1) {
 					url = args[0];
-//					String lowerUrl = url.toLowerCase();
-//					if(!(lowerUrl.endsWith("jpeg") || lowerUrl.endsWith("jpg") || lowerUrl.endsWith("png") || lowerUrl.endsWith("bmp") || lowerUrl.endsWith("wbmp") || lowerUrl.endsWith("gif"))) {
-//						sender.sendMessage(ChatColor.RED + "Please enter an url which ends with only :");
-//						sender.sendMessage(ChatColor.RED + ".jpeg");
-//						sender.sendMessage(ChatColor.RED + ".jpg");
-//						sender.sendMessage(ChatColor.RED + ".png");
-//						sender.sendMessage(ChatColor.RED + ".bmp");
-//						sender.sendMessage(ChatColor.RED + ".wbmp");
-//						sender.sendMessage(ChatColor.RED + ".gif");
-//						return true;
-//					}
 					for(String word : config.Config_Unauthorized_Words) {
 						if(url.contains(word)) {
 							sender.sendMessage(ChatColor.RED + "Your URL contains an unauthorized word : '" + word + "'.");
@@ -115,30 +109,51 @@ public class IMGSender extends JavaPlugin {
 					}
 				}
 				if(args.length >= 4) {
-					player = Bukkit.getPlayer(args[3]);
+					player = Bukkit.getPlayer(args[args.length - 1]);
+					final StringBuilder result = new StringBuilder();
 					if(player == null) {
-						sender.sendMessage(ChatColor.RED + "This player was not found !");
-						return true;
+						for(int i = 3; i < args.length; i++) {
+						   result.append(args[i]);
+						   result.append(" ");
+						}
+						text = result.toString();
+					}
+					else {
+						for(int i = 3; i < args.length - 1; i++) {
+							result.append(args[i]);
+							result.append(" ");
+						}
+						text = result.toString();
 					}
 				}
+				BufferedImage image = null;
 				if(cache.get(url) == null) {
 					if(cache.size() == config.Cache_Size_Max) {
 						for(File file : cacheDir.listFiles()) {
 							file.delete();
 						}
 						cache.clear();
-					}			  
-					new Downloader(url, new File(cacheDir, String.valueOf(cache.size() + 1)), sender).run();
-					TestFile checkImage = new TestFile(new File(cacheDir, String.valueOf(cache.size() + 1)));
-				   	if(checkImage.isImage()) {
+					}
+					final File imageFile = new File(cacheDir, String.valueOf(cache.size() + 1));
+					new Downloader(url, imageFile, sender).run();
+					image = ImageIO.read(imageFile);
+				   	if(image != null) {
 				   		cache.put(url, cache.size() + 1);
 				   	}
 				   	else {
-				   		sender.sendMessage(ChatColor.RED + "URL is not an image.");
+				   		sender.sendMessage(ChatColor.RED + "This file is not an image.");
+				   		imageFile.delete();
+				   		return true;
 				   	}
 				}
-				ChatColor[][] colors = ImgMessage.toChatColorArray(ImageIO.read(new File(cacheDir, String.valueOf(cache.get(url)))), size);
+				else {
+					image = ImageIO.read(new File(cacheDir, String.valueOf(cache.get(url))));
+				}
+				final ChatColor[][] colors = ImgMessage.toChatColorArray(image, size);
 				String[] lines = ImgMessage.toImgMessage(colors, imgChar.getChar());
+				if(text != null) {
+					lines = ImgMessage.appendTextToImg(lines, text);
+				}
 				if(player != null) {
 					player.sendMessage("<" + sender.getName() + "> :");
 					for(String line : lines) {
@@ -151,6 +166,11 @@ public class IMGSender extends JavaPlugin {
 						for(String line : lines) {
 							online.sendMessage(line);
 						}
+					}
+					final CommandSender console = Bukkit.getConsoleSender();
+					console.sendMessage("<" + sender.getName() + "> :");
+					for(String line : lines) {
+						console.sendMessage(line);
 					}
 				}
 			}
