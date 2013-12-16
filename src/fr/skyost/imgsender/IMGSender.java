@@ -71,7 +71,7 @@ public class IMGSender extends JavaPlugin {
 				String url = config.Default_URL;
 				int size = config.Default_Size;
 				ImgChar imgChar = config.Default_Char;
-				String text = null;
+				String[] text = null;
 				Player player = null;
 				if(args.length >= 1) {
 					url = args[0];
@@ -116,14 +116,14 @@ public class IMGSender extends JavaPlugin {
 						   result.append(args[i]);
 						   result.append(" ");
 						}
-						text = result.toString();
+						text = result.toString().split(" ");
 					}
 					else {
 						for(int i = 3; i < args.length - 1; i++) {
 							result.append(args[i]);
 							result.append(" ");
 						}
-						text = result.toString();
+						text = result.toString().split(" ");
 					}
 				}
 				BufferedImage image = null;
