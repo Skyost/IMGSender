@@ -2,6 +2,8 @@ package fr.skyost.imgsender.utils;
 
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.util.ChatPaginator;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
@@ -66,9 +68,10 @@ public class ImgMessage {
 	}
 
 	public static String[] appendTextToImg(String[] chatImg, String... text) {
-		for (int y = 0; y < chatImg.length; y++) {
-			if(text.length>y){
-				chatImg[y] = chatImg[y] + " " + text[y];
+		for (int y = 0, x = 0; y < chatImg.length; y++) {
+			while(text.length>x && chatImg[y].length() < ChatPaginator.AVERAGE_CHAT_PAGE_WIDTH){
+				chatImg[y] = chatImg[y] + " " + text[x];
+				x++;
 			}
 		}
 		return chatImg;
