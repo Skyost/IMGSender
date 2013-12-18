@@ -16,9 +16,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import fr.skyost.imgsender.tasks.Downloader;
 import fr.skyost.imgsender.utils.ImgMessage;
 import fr.skyost.imgsender.utils.MetricsLite;
-import fr.skyost.imgsender.utils.Updater;
 import fr.skyost.imgsender.utils.ImgMessage.ImgChar;
-import fr.skyost.imgsender.utils.Updater.UpdateType;
+import fr.skyost.imgsender.utils.Skyupdater;
 
 /**
  * IMGSender main class.
@@ -48,7 +47,7 @@ public class IMGSender extends JavaPlugin {
 				Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "The MinImageSize must be superior than 5 ! It has been reverted back to 5.");
 			}
 			if(config.Config_EnableUpdater) {
-				new Updater(this, 70595, this.getFile(), UpdateType.DEFAULT, true);
+				new Skyupdater(this, 70595, this.getFile(), true, true);
 			}
 			new MetricsLite(this).start();
 			config.save();
