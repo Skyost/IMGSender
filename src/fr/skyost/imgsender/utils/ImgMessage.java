@@ -105,7 +105,11 @@ public class ImgMessage {
 	}
 
 	private static BufferedImage resizeImage(BufferedImage originalImage, int width, int height) {
-		BufferedImage resizedImage = new BufferedImage(width, height, originalImage.getType());
+		int imageType = originalImage.getType();
+		if(imageType == 0) {
+			imageType = 5;
+		}
+		BufferedImage resizedImage = new BufferedImage(width, height, imageType);
 		Graphics2D g = resizedImage.createGraphics();
 		g.drawImage(originalImage, 0, 0, width, height, null);
 		g.dispose();

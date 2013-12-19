@@ -1,6 +1,7 @@
 package fr.skyost.imgsender;
 
 import java.awt.image.BufferedImage;
+import java.awt.image.RescaleOp;
 import java.io.File;
 import java.util.HashMap;
 
@@ -49,6 +50,11 @@ public class IMGSender extends JavaPlugin {
 			if(config.Config_EnableUpdater) {
 				new Skyupdater(this, 70595, this.getFile(), true, true);
 			}
+			if(!(isFloat(config.RescaleOp_Offset) || isFloat(config.RescaleOp_ScaleFactor))) {
+				Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "You must enter a number like this : '0.0' in your RescaleOp settings !");
+				config.RescaleOp_Offset = "0.0";
+				config.RescaleOp_ScaleFactor = "0.0";
+			}
 			new MetricsLite(this).start();
 			config.save();
 			this.getCommand("img").setUsage(ChatColor.RED + "/img [url] [size] [char] [text] [player].");
@@ -62,6 +68,15 @@ public class IMGSender extends JavaPlugin {
 		for(File file : cacheDir.listFiles()) {
 			file.delete();
 		}
+	}
+	
+	public boolean isFloat(final String floatStr) {
+		try {
+			Float.parseFloat(floatStr);
+			return true;
+		}
+		catch(NumberFormatException ex) { }
+		return false;
 	}
 	
 	public boolean onCommand(final CommandSender sender, Command cmd, String label, String[] args) {
@@ -80,49 +95,49 @@ public class IMGSender extends JavaPlugin {
 							return true;
 						}
 					}
-				}
-				if(args.length >= 2) {
-					try {
-						size = Integer.parseInt(args[1]);
-						if(size < config.ImageSize_Min || size > config.ImageSize_Max) {
-							sender.sendMessage(ChatColor.RED + "The image size must be between '" + config.ImageSize_Min + "' and '" + config.ImageSize_Max + "' !");
+					if(args.length >= 2) {
+						try {
+							size = Integer.parseInt(args[1]);
+							if(size < config.ImageSize_Min || size > config.ImageSize_Max) {
+								sender.sendMessage(ChatColor.RED + "The image size must be between '" + config.ImageSize_Min + "' and '" + config.ImageSize_Max + "' !");
+								return true;
+							}
+						}
+						catch(NumberFormatException ex) {
+							sender.sendMessage(ChatColor.RED + "'" + args[1] + "' is not a valid number !");
 							return true;
 						}
-					}
-					catch(NumberFormatException ex) {
-						sender.sendMessage(ChatColor.RED + "'" + args[1] + "' is not a valid number !");
-						return true;
-					}
-				}
-				if(args.length >= 3) {
-					try {
-						imgChar = ImgChar.valueOf(args[2]);
-					}
-					catch(IllegalArgumentException ex) {
-						sender.sendMessage(ChatColor.RED + "'" + args[2] + "' is not a valid char !");
-						sender.sendMessage(ChatColor.RED + "Available chars :");
-						for(ImgChar value : ImgChar.values()) {
-							sender.sendMessage(ChatColor.RED + value.name());
+						if(args.length >= 3) {
+							try {
+								imgChar = ImgChar.valueOf(args[2]);
+							}
+							catch(IllegalArgumentException ex) {
+								sender.sendMessage(ChatColor.RED + "'" + args[2] + "' is not a valid char !");
+								sender.sendMessage(ChatColor.RED + "Available chars :");
+								for(ImgChar value : ImgChar.values()) {
+									sender.sendMessage(ChatColor.RED + value.name());
+								}
+								return true;
+							}
+							if(args.length >= 4) {
+								player = Bukkit.getPlayer(args[args.length - 1]);
+								final StringBuilder result = new StringBuilder();
+								if(player == null) {
+									for(int i = 3; i < args.length; i++) {
+									   result.append(args[i]);
+									   result.append(" ");
+									}
+									text = result.toString().split(" ");
+								}
+								else {
+									for(int i = 3; i < args.length - 1; i++) {
+										result.append(args[i]);
+										result.append(" ");
+									}
+									text = result.toString().split(" ");
+								}
+							}
 						}
-						return true;
-					}
-				}
-				if(args.length >= 4) {
-					player = Bukkit.getPlayer(args[args.length - 1]);
-					final StringBuilder result = new StringBuilder();
-					if(player == null) {
-						for(int i = 3; i < args.length; i++) {
-						   result.append(args[i]);
-						   result.append(" ");
-						}
-						text = result.toString().split(" ");
-					}
-					else {
-						for(int i = 3; i < args.length - 1; i++) {
-							result.append(args[i]);
-							result.append(" ");
-						}
-						text = result.toString().split(" ");
 					}
 				}
 				BufferedImage image = null;
@@ -148,28 +163,25 @@ public class IMGSender extends JavaPlugin {
 				else {
 					image = ImageIO.read(new File(cacheDir, String.valueOf(cache.get(url))));
 				}
+				if(!((config.RescaleOp_Offset.equals("0.0") || config.RescaleOp_Offset.equals("0")) && (config.RescaleOp_ScaleFactor.equals("0.0") || config.RescaleOp_ScaleFactor.equals("0")))) {
+					new RescaleOp(Float.parseFloat(config.RescaleOp_Offset), Float.parseFloat(config.RescaleOp_ScaleFactor), null).filter(image, image);
+				}
+				final String senderLine = config.Config_ChatFormat.replaceAll("/sender/", sender.getName());
 				final ChatColor[][] colors = ImgMessage.toChatColorArray(image, size);
 				String[] lines = ImgMessage.toImgMessage(colors, imgChar.getChar());
 				if(text != null) {
 					lines = ImgMessage.appendTextToImg(lines, text);
 				}
 				if(player != null) {
-					player.sendMessage("<" + sender.getName() + "> :");
+					player.sendMessage(senderLine);
 					for(String line : lines) {
 						player.sendMessage(line);
 					}
 				}
 				else {
-					for(Player online : Bukkit.getOnlinePlayers()) {
-						online.sendMessage("<" + sender.getName() + "> :");
-						for(String line : lines) {
-							online.sendMessage(line);
-						}
-					}
-					final CommandSender console = Bukkit.getConsoleSender();
-					console.sendMessage("<" + sender.getName() + "> :");
+					Bukkit.broadcastMessage(senderLine);
 					for(String line : lines) {
-						console.sendMessage(line);
+						Bukkit.broadcastMessage(line);
 					}
 				}
 			}
@@ -190,5 +202,5 @@ public class IMGSender extends JavaPlugin {
 		}
 		return false;
 	}
-
+	
 }

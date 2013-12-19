@@ -12,6 +12,10 @@ public class ConfigFile extends Config {
 	
 	public boolean Config_EnableUpdater = true;
 	public ArrayList<String> Config_Unauthorized_Words = new ArrayList<String>();
+	public String Config_ChatFormat = "</sender/> :";
+	
+	public String RescaleOp_ScaleFactor = "0.0";
+	public String RescaleOp_Offset = "0.0";
 	
 	public int Cache_Size_Max = 10;
 	
