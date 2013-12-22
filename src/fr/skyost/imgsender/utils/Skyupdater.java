@@ -38,7 +38,7 @@ public class Skyupdater {
 	private String[] updateData;
 	private Thread updaterThread;
 	
-	private static final String SKYUPDATER_VERSION = "0.1";
+	private static final String SKYUPDATER_VERSION = "0.1.1";
 	
 	public enum Result {
 		
@@ -114,7 +114,7 @@ public class Skyupdater {
 	 * @param id Your plugin ID on BukkitDev (you can get it here : https://api.curseforge.com/servermods/projects?search=your+plugin).
 	 * @param pluginFile The plugin file.
 	 * @param download If you want to download the file.
-	 * @param announce If you want to announce the progress of the Updater;
+	 * @param announce If you want to announce the progress of the Updater.
 	 * 
 	 * @author Skyost
 	 */
@@ -298,11 +298,11 @@ public class Skyupdater {
 	 */
 	
 	private void waitForThread() {
-		if((this != null) && updaterThread.isAlive()) {
+		if(updaterThread != null && updaterThread.isAlive()) {
 			try {
 				updaterThread.join();
 			}
-			catch(final InterruptedException ex) {
+			catch(InterruptedException ex) {
 				ex.printStackTrace();
 			}
 		}

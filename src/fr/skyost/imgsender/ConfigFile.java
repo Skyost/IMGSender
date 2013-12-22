@@ -13,6 +13,7 @@ public class ConfigFile extends Config {
 	public boolean Config_EnableUpdater = true;
 	public ArrayList<String> Config_Unauthorized_Words = new ArrayList<String>();
 	public String Config_ChatFormat = "</sender/> :";
+	public String Config_CacheDirectory;
 	
 	public String RescaleOp_ScaleFactor = "0.0";
 	public String RescaleOp_Offset = "0.0";
@@ -37,6 +38,8 @@ public class ConfigFile extends Config {
 		Config_Unauthorized_Words.add("porn");
 		Config_Unauthorized_Words.add("dick");
 		Config_Unauthorized_Words.add("4tube");
+		
+		Config_CacheDirectory = new File(plugin.getDataFolder() + "\\cache").getPath();
 	}
 	
 }

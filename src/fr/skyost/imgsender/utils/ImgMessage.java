@@ -69,8 +69,8 @@ public class ImgMessage {
 
 	public static String[] appendTextToImg(String[] chatImg, String... text) {
 		for (int y = 0, x = 0; y < chatImg.length; y++) {
-			while(text.length>x && chatImg[y].length() < ChatPaginator.AVERAGE_CHAT_PAGE_WIDTH){
-				chatImg[y] = chatImg[y] + " " + text[x];
+			while(text.length>x && chatImg[y].length() < ChatPaginator.AVERAGE_CHAT_PAGE_WIDTH) {
+				chatImg[y] = chatImg[y] + " " + Utils.colourize(text[x]);
 				x++;
 			}
 		}

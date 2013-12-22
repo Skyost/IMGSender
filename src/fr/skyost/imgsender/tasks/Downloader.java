@@ -11,8 +11,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
-public class Downloader implements Runnable {
+public class Downloader extends Thread {
 	
+	private String response;
 	private String site;
 	private File pathTo;
 	private CommandSender sender;
@@ -31,8 +32,11 @@ public class Downloader implements Runnable {
 				Bukkit.getConsoleSender().sendMessage(senderName + " is downloading '" + site + "'...");
 			}
 			sender.sendMessage(ChatColor.GOLD + "Downloading " + site + "...");
-			URL url = new URL(site);
-			HttpURLConnection connection = (HttpURLConnection)url.openConnection();
+			final HttpURLConnection connection = (HttpURLConnection)new URL(site).openConnection();
+			response = connection.getResponseCode() + " " + connection.getResponseMessage();
+			if(!response.startsWith("2")) {
+				return;
+			}
 			float totalDataRead = 0;
 			BufferedInputStream in = new BufferedInputStream(connection.getInputStream());
 			FileOutputStream fos = new FileOutputStream(pathTo);
@@ -50,6 +54,10 @@ public class Downloader implements Runnable {
 		catch(Exception ex) {
 			ex.printStackTrace();
 		}
+	}
+	
+	public final String getResponse() {
+		return response;
 	}
 
 }
