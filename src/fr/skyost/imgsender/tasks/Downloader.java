@@ -33,6 +33,7 @@ public class Downloader extends Thread {
 			}
 			sender.sendMessage(ChatColor.GOLD + "Downloading " + site + "...");
 			final HttpURLConnection connection = (HttpURLConnection)new URL(site).openConnection();
+			connection.addRequestProperty("User-Agent", "IMGSender by Skyost");
 			response = connection.getResponseCode() + " " + connection.getResponseMessage();
 			if(!response.startsWith("2")) {
 				return;

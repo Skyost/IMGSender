@@ -14,6 +14,7 @@ public class ConfigFile extends Config {
 	public ArrayList<String> Config_Unauthorized_Words = new ArrayList<String>();
 	public String Config_ChatFormat = "</sender/> :";
 	public String Config_CacheDirectory;
+	public boolean Config_TextCenter = false;
 	
 	public String RescaleOp_ScaleFactor = "0.0";
 	public String RescaleOp_Offset = "0.0";

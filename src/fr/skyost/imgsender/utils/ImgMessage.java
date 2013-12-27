@@ -8,10 +8,17 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
 
+/**
+ * ImgMessage modified by Skyost.
+ * 
+ * @author bobacadodl.
+ */
 public class ImgMessage {
 	
-	@SuppressWarnings("serial")
-	public static HashMap<Color, ChatColor> colorMap = new HashMap<Color, ChatColor>() {{
+	public static HashMap<Color, ChatColor> colorMap = new HashMap<Color, ChatColor>() {
+		
+		private static final long serialVersionUID = 6480761559977000191L; {
+		
 		put(new Color(0, 0, 0), ChatColor.BLACK);
 		put(new Color(0, 0, 170), ChatColor.DARK_BLUE);
 		put(new Color(0, 170, 0), ChatColor.DARK_GREEN);
@@ -31,20 +38,17 @@ public class ImgMessage {
 	}};
 
 	public static ChatColor[][] toChatColorArray(BufferedImage image, int height) {
-		double ratio = (double) image.getHeight() / image.getWidth();
-		int width = (int) (height / ratio);
-		if (width > 25) width = 25;
-		BufferedImage resized = resizeImage(image, (int) (height / ratio), height);
-
+		double ratio = (double)image.getHeight() / image.getWidth();
+		BufferedImage resized = resizeImage(image, (int)(height / ratio), height);
 		ChatColor[][] chatImg = new ChatColor[resized.getWidth()][resized.getHeight()];
 		for (int x = 0; x < resized.getWidth(); x++) {
 			for (int y = 0; y < resized.getHeight(); y++) {
 				int rgb = resized.getRGB(x, y);
 				ChatColor closest = ChatColor.WHITE;
 				double closestDistance = Double.MAX_VALUE;
-				for (Color c : colorMap.keySet()) {
+				for(Color c : colorMap.keySet()) {
 					double dis = colorDiff(c, new Color(rgb));
-					if (dis < closestDistance) {
+					if(dis < closestDistance) {
 						closestDistance = dis;
 						closest = colorMap.get(c);
 					}
@@ -54,45 +58,7 @@ public class ImgMessage {
 		}
 		return chatImg;
 	}
-
-	public static String[] toImgMessage(ChatColor[][] colors, char imgchar) {
-		String[] lines = new String[colors[0].length];
-		for (int y = 0; y < colors[0].length; y++) {
-			String line = "";
-			for (int x = 0; x < colors.length; x++) {
-				line += colors[x][y].toString()+imgchar;
-			}
-			lines[y] = line + ChatColor.RESET;
-		}
-		return lines;
-	}
-
-	public static String[] appendTextToImg(String[] chatImg, String... text) {
-		for (int y = 0, x = 0; y < chatImg.length; y++) {
-			while(text.length>x && chatImg[y].length() < ChatPaginator.AVERAGE_CHAT_PAGE_WIDTH) {
-				chatImg[y] = chatImg[y] + " " + Utils.colourize(text[x]);
-				x++;
-			}
-		}
-		return chatImg;
-	}
-
-	public static void imgMessage(Player player, BufferedImage image, int height, char imgchar, String... text) {
-		ChatColor[][] colors = toChatColorArray(image, height);
-		String[] lines = toImgMessage(colors, imgchar);
-		lines = appendTextToImg(lines, text);
-		for (String line : lines) {
-			player.sendMessage(line);
-		}
-	}
 	
-	public static String[] getImgMessage(BufferedImage image, int height, char imgchar, String... text) {
-		ChatColor[][] colors = toChatColorArray(image, height);
-		String[] lines = toImgMessage(colors, imgchar);
-		lines = appendTextToImg(lines, text);
-		return lines;
-	}
-
 	private static double colorDiff(Color c1, Color c2) {
 		double r1 = c1.getRed();
 		double g1 = c1.getGreen();
@@ -102,6 +68,76 @@ public class ImgMessage {
 		double b2 = c2.getBlue();
 		double distance = (r2 - r1) * (r2 - r1) + (g2 - g1) * (g2 - g1) + (b2 - b1) * (b2 - b1);
 		return distance;
+	}
+
+	public static String[] toImgMessage(ChatColor[][] colors, char imgchar) {
+		String[] lines = new String[colors[0].length];
+		for(int y = 0; y < colors[0].length; y++) {
+			String line = "";
+			for(int x = 0; x < colors.length; x++) {
+				line += colors[x][y].toString() + imgchar;
+			}
+			lines[y] = line + ChatColor.RESET;
+		}
+		return lines;
+	}
+
+	public static String[] appendTextToImg(String[] chatImg, String... text) {
+		for(int y = 0, x = 0; y < chatImg.length; y++) {
+			while(text.length > x && chatImg[y].length() < ChatPaginator.AVERAGE_CHAT_PAGE_WIDTH) {
+				chatImg[y] = chatImg[y] + " " + Utils.colourize(text[x]);
+				x++;
+			}
+		}
+		return chatImg;
+	}
+
+	public static String[] appendCenteredTextToImg(String[] chatImg, String... text) {
+		for(int y = 0; y < chatImg.length; y++) {
+			if(text.length > y) {
+				int len = ChatPaginator.AVERAGE_CHAT_PAGE_WIDTH - chatImg[y].length();
+				chatImg[y] = chatImg[y] + center(Utils.colourize(text[y]), len);
+			}
+			else {
+				return chatImg;
+			}
+		}
+		return chatImg;
+	}
+
+	public static String center(String s, int length) {
+		if(s.length() > length) {
+			return s.substring(0, length);
+		}
+		else if(s.length() == length) {
+			return s;
+		}
+		else {
+			int leftPadding = (length - s.length()) / 2;
+			StringBuilder leftBuilder = new StringBuilder();
+			for(int i = 0; i < leftPadding; i++) {
+				leftBuilder.append(" ");
+			}
+			return leftBuilder.toString() + s;
+		}
+	}
+
+	public static void imgMessage(Player player, BufferedImage image, int height, char imgchar, String... text){
+		imgMessage(player,image,height,imgchar,true,text);
+	}
+
+	public static void imgMessage(Player player, BufferedImage image, int height, char imgchar, boolean centered, String... text) {
+		ChatColor[][] colors = toChatColorArray(image, height);
+		String[] lines = toImgMessage(colors, imgchar);
+		if(centered) {
+			lines = appendCenteredTextToImg(lines,text);
+		}
+		else {
+			lines = appendTextToImg(lines, text);
+		}
+		for(String line : lines) {
+			player.sendMessage(line);
+		}
 	}
 
 	private static BufferedImage resizeImage(BufferedImage originalImage, int width, int height) {
@@ -135,4 +171,5 @@ public class ImgMessage {
 			return c;
 		}
 	}
+
 }

@@ -1,5 +1,6 @@
 package fr.skyost.imgsender.utils;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -7,8 +8,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -18,6 +19,14 @@ import org.bukkit.plugin.Plugin;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
+
+/**
+ * A simple auto-updater.
+ * <br>Please follow this link to read more about checking for updates in your plugin : http://url.skyost.eu/3.
+ * <br><br>Thanks to Gravity for his updater (this file use some parts of his code) !
+ * 
+ * @author Skyost
+ */
 
 public class Skyupdater {
 	
@@ -29,16 +38,17 @@ public class Skyupdater {
 	private boolean announce;
 	private boolean isEnabled = true;
 	
-	private String apiKey = null;
+	private String apiKey;
 	private URL url;
 	private final Properties config = new Properties();
 	private File skyupdaterFolder;
 	private File updateFolder;
 	private Result result = Result.SUCCESS;
 	private String[] updateData;
+	private String response;
 	private Thread updaterThread;
 	
-	private static final String SKYUPDATER_VERSION = "0.1.1";
+	private static final String SKYUPDATER_VERSION = "0.2.1";
 	
 	public enum Result {
 		
@@ -107,16 +117,13 @@ public class Skyupdater {
 	}
 	
 	/**
-	 * A simple auto-updater.
-	 * <br>Please follow this link to read more about checking for updates in your plugin : http://url.skyost.eu/3.
+	 * Initialize Skyupdater.
 	 * 
 	 * @param plugin Your plugin.
 	 * @param id Your plugin ID on BukkitDev (you can get it here : https://api.curseforge.com/servermods/projects?search=your+plugin).
 	 * @param pluginFile The plugin file.
 	 * @param download If you want to download the file.
 	 * @param announce If you want to announce the progress of the Updater.
-	 * 
-	 * @author Skyost
 	 */
 	
 	public Skyupdater(final Plugin plugin, final int id, final File pluginFile, final boolean download, final boolean announce) {
@@ -131,7 +138,7 @@ public class Skyupdater {
 			if(!updateFolder.exists()) {
 				updateFolder.mkdir();
 			}
-			skyupdaterFolder = new File(plugin.getDataFolder().getParentFile() + "\\Skyupdater");
+			skyupdaterFolder = new File(plugin.getDataFolder().getParentFile() + System.getProperty("file.separator") + "Skyupdater");
 			if(!skyupdaterFolder.exists()) {
 				skyupdaterFolder.mkdir();
 			}
@@ -181,11 +188,21 @@ public class Skyupdater {
 			}
 			url = new URL("https://api.curseforge.com/servermods/files?projectIds=" + id);
 			updaterThread = new Thread(new UpdaterThread());
-			updaterThread.run();
+			updaterThread.start();
 		}
 		catch(Exception ex) {
 			ex.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Get the version of Skyupdater.
+	 * 
+	 * @return The version of Skyupdater.
+	 */
+	
+	public static String getVersion() {
+		return SKYUPDATER_VERSION;
 	}
 	
 	/**
@@ -244,14 +261,38 @@ public class Skyupdater {
 	 * @throws IOException InputOutputException.
 	 */
 	
-	private void download(final String site, final File pathTo) throws IOException {;
-		final InputStream is = new URL(site).openStream();
-		final FileOutputStream fos = new FileOutputStream(pathTo);
-		final byte[] buffer = new byte[4096];
-		int bytesRead = 0;
-		while((bytesRead = is.read(buffer)) != -1) {
-			fos.write(buffer, 0, bytesRead);
+	private void download(final String site, final File pathTo) throws IOException {
+		final HttpURLConnection con = (HttpURLConnection)new URL(site).openConnection();
+		con.addRequestProperty("User-Agent", "Skyupdater v" + SKYUPDATER_VERSION);
+		response = con.getResponseCode() + " " + con.getResponseMessage();
+		if(!response.startsWith("2")) {
+			if(announce) {
+				logger.log(Level.INFO, "[Skyupdater] Bad response : '" + response + "' when trying to download the update.");
+			}
+			result = Result.ERROR;
+			return;
 		}
+		final int size = con.getContentLength();
+		int lastPercent = 0;
+		int percent = 0;
+		float totalDataRead = 0;
+		final InputStream is = con.getInputStream();
+		final FileOutputStream fos = new java.io.FileOutputStream(pathTo);
+		final BufferedOutputStream bos = new BufferedOutputStream(fos, 1024);
+		byte[] data = new byte[1024];
+		int i=0;
+		while((i = is.read(data, 0, 1024)) >= 0) {
+			totalDataRead += i;
+			bos.write(data, 0, i);
+			if(announce) {
+				percent = ((int)((totalDataRead * 100) / size));
+				if(lastPercent != percent) {
+					lastPercent = percent;
+					logger.log(Level.INFO, "[Skyupdater] " + percent + "%");
+				}
+			}
+		}
+		bos.close();
 		fos.close();
 		is.close();
 	}
@@ -314,11 +355,19 @@ public class Skyupdater {
 		public void run() {
 			if(isEnabled) {
 				try {
-					final URLConnection con = url.openConnection();
+					final HttpURLConnection con = (HttpURLConnection)url.openConnection();
+					con.addRequestProperty("User-Agent", "Skyupdater v" + SKYUPDATER_VERSION);
 					if(apiKey != null) {
 						con.addRequestProperty("X-API-Key", apiKey);
 					}
-					con.addRequestProperty("User-Agent", "Skyupdater v" + SKYUPDATER_VERSION);
+					response = con.getResponseCode() + " " + con.getResponseMessage();
+					if(!response.startsWith("2")) {
+						if(announce) {
+							logger.log(Level.INFO, "[Skyupdater] Bad response : '" + response + "'. Maybe your API Key is invalid ?");
+						}
+						result = Result.ERROR;
+						return;
+					}
 					final BufferedReader reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
 					final String response = reader.readLine();
 					if(!response.equals("[]")) {
@@ -356,6 +405,7 @@ public class Skyupdater {
 				}
 				catch (Exception ex) {
 					ex.printStackTrace();
+					result = Result.ERROR;
 				}
 			}
 		}

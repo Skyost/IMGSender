@@ -187,7 +187,12 @@ public class IMGSender extends JavaPlugin {
 			final ChatColor[][] colors = ImgMessage.toChatColorArray(image, size);
 			String[] lines = ImgMessage.toImgMessage(colors, imgChar.getChar());
 			if(text != null) {
-				lines = ImgMessage.appendTextToImg(lines, text);
+				if(config.Config_TextCenter) {
+					lines = ImgMessage.appendCenteredTextToImg(lines, text);
+				}
+				else {
+					lines = ImgMessage.appendTextToImg(lines, text);
+				}
 			}
 			if(player != null) {
 				if(!sender.hasPermission("img.private.send")) {
