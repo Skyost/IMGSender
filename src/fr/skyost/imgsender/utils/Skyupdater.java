@@ -48,7 +48,7 @@ public class Skyupdater {
 	private String response;
 	private Thread updaterThread;
 	
-	private static final String SKYUPDATER_VERSION = "0.2.1";
+	private static final String SKYUPDATER_VERSION = "0.2.3";
 	
 	public enum Result {
 		
@@ -124,75 +124,72 @@ public class Skyupdater {
 	 * @param pluginFile The plugin file.
 	 * @param download If you want to download the file.
 	 * @param announce If you want to announce the progress of the Updater.
+	 * @throws IOException InputOutputException.
 	 */
 	
-	public Skyupdater(final Plugin plugin, final int id, final File pluginFile, final boolean download, final boolean announce) {
+	public Skyupdater(final Plugin plugin, final int id, final File pluginFile, final boolean download, final boolean announce) throws IOException {
 		this.plugin = plugin;
 		this.id = id;
 		this.pluginFile = pluginFile;
 		this.download = download;
 		this.announce = announce;
-		try {
-			logger = plugin.getServer().getLogger();
-			updateFolder = plugin.getServer().getUpdateFolderFile();
-			if(!updateFolder.exists()) {
-				updateFolder.mkdir();
-			}
-			skyupdaterFolder = new File(plugin.getDataFolder().getParentFile() + System.getProperty("file.separator") + "Skyupdater");
-			if(!skyupdaterFolder.exists()) {
-				skyupdaterFolder.mkdir();
-			}
-			final File propertiesFile = new File(skyupdaterFolder, "skyupdater.properties");
-			if(propertiesFile.exists()) {
-				config.load(new FileInputStream(propertiesFile));
-				String key = config.getProperty("api-key", "NONE");
-				if(!(key.equalsIgnoreCase("NONE") || key.equals(""))) {
-					apiKey = key;
-				}
-				if(!config.getProperty("enable", "true").equalsIgnoreCase("true")) {
-					result = Result.DISABLED;
-					isEnabled = false;
-					if(announce) {
-						logger.log(Level.INFO, "[Skyupdater] Skyupdater is disabled.");
-					}
-				}
-			}
-			else {
-				final String lineSeparator = System.getProperty("line.separator");
-				config.put("enable", "true");
-				config.put("api-key", "NONE");
-				final StringBuilder header = new StringBuilder();
-				header.append("Skyupdater configuration");
-				header.append(lineSeparator);
-				header.append(lineSeparator);
-				header.append("What is Skyupdater ?");
-				header.append(lineSeparator);
-				header.append("Skyupdater is a simple auto-updater created by Skyost (http://www.skyost.eu) for Bukkit plugins.");
-				header.append(lineSeparator);
-				header.append(lineSeparator);
-				header.append("So what is this file ?");
-				header.append(lineSeparator);
-				header.append("This file is just a config file for the auto-updater.");
-				header.append(lineSeparator);
-				header.append(lineSeparator);
-				header.append("Configuration :");
-				header.append(lineSeparator);
-				header.append("'enable': Choose if you want to enable the auto-updater.");
-				header.append(lineSeparator);
-				header.append("'api-key': OPTIONAL. Your BukkitDev API Key.");
-				header.append(lineSeparator);
-				header.append(lineSeparator);
-				header.append("Good game, I hope you will enjoy your plugins always up-to-date ;)");
-				header.append(lineSeparator);
-				config.store(new FileOutputStream(propertiesFile), header.toString());
-			}
-			url = new URL("https://api.curseforge.com/servermods/files?projectIds=" + id);
-			updaterThread = new Thread(new UpdaterThread());
-			updaterThread.start();
+		logger = plugin.getServer().getLogger();
+		updateFolder = plugin.getServer().getUpdateFolderFile();
+		if(!updateFolder.exists()) {
+			updateFolder.mkdir();
 		}
-		catch(Exception ex) {
-			ex.printStackTrace();
+		final Properties systemProperties = System.getProperties();
+		skyupdaterFolder = new File(plugin.getDataFolder().getParentFile() + systemProperties.getProperty("file.separator", "/") + "Skyupdater");
+		if(!skyupdaterFolder.exists()) {
+			skyupdaterFolder.mkdir();
 		}
+		final File propertiesFile = new File(skyupdaterFolder, "skyupdater.properties");
+		if(propertiesFile.exists()) {
+			config.load(new FileInputStream(propertiesFile));
+			String key = config.getProperty("api-key", "NONE");
+			if(!(key.equalsIgnoreCase("NONE") || key.equals(""))) {
+				apiKey = key;
+			}
+			if(!config.getProperty("enable", "true").equalsIgnoreCase("true")) {
+				result = Result.DISABLED;
+				isEnabled = false;
+				if(announce) {
+					logger.log(Level.INFO, "[Skyupdater] Skyupdater is disabled.");
+				}
+			}
+		}
+		else {
+			final String lineSeparator = systemProperties.getProperty("line.separator", "\n");
+			config.put("enable", "true");
+			config.put("api-key", "NONE");
+			final StringBuilder header = new StringBuilder();
+			header.append("Skyupdater configuration");
+			header.append(lineSeparator);
+			header.append(lineSeparator);
+			header.append("What is Skyupdater ?");
+			header.append(lineSeparator);
+			header.append("Skyupdater is a simple auto-updater created by Skyost (http://www.skyost.eu) for Bukkit plugins.");
+			header.append(lineSeparator);
+			header.append(lineSeparator);
+			header.append("So what is this file ?");
+			header.append(lineSeparator);
+			header.append("This file is just a config file for the auto-updater.");
+			header.append(lineSeparator);
+			header.append(lineSeparator);
+			header.append("Configuration :");
+			header.append(lineSeparator);
+			header.append("'enable': Choose if you want to enable the auto-updater.");
+			header.append(lineSeparator);
+			header.append("'api-key': OPTIONAL. Your BukkitDev API Key.");
+			header.append(lineSeparator);
+			header.append(lineSeparator);
+			header.append("Good game, I hope you will enjoy your plugins always up-to-date ;)");
+			header.append(lineSeparator);
+			config.store(new FileOutputStream(propertiesFile), header.toString());
+		}
+		url = new URL("https://api.curseforge.com/servermods/files?projectIds=" + id);
+		updaterThread = new Thread(new UpdaterThread());
+		updaterThread.start();
 	}
 	
 	/**

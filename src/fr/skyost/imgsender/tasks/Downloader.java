@@ -58,7 +58,19 @@ public class Downloader extends Thread {
 	}
 	
 	public final String getResponse() {
+		waitForThread();
 		return response;
+	}
+	
+	private void waitForThread() {
+		if(this.isAlive()) {
+			try {
+				this.join();
+			}
+			catch(InterruptedException ex) {
+				ex.printStackTrace();
+			}
+		}
 	}
 
 }
