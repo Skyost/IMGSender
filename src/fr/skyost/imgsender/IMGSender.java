@@ -199,7 +199,7 @@ public class IMGSender extends JavaPlugin {
 			new RescaleOp(Float.parseFloat(config.RescaleOp_Offset), Float.parseFloat(config.RescaleOp_ScaleFactor), null).filter(image, image);
 		}
 		final String senderLine = config.Config_ChatFormat.replaceAll("/sender/", sender.getName());
-		final ChatColor[][] colors = ImageMessage.toChatColorArray(image, size, config.Config_NewAlgorithm);
+		final ChatColor[][] colors = ImageMessage.toChatColorArray(image, size, config.Config_UseNewAlgorithm);
 		String[] lines = ImageMessage.toImgMessage(colors, imgChar.getChar());
 		if(text != null) {
 			if(config.Config_TextCenter) {

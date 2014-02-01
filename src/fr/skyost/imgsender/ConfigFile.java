@@ -15,7 +15,7 @@ public class ConfigFile extends Config {
 	public String Config_ChatFormat = "</sender/> :";
 	public String Config_CacheDirectory;
 	public boolean Config_TextCenter = false;
-	public boolean Config_NewAlgorithm = false;
+	public boolean Config_UseNewAlgorithm = false;
 	
 	public String RescaleOp_ScaleFactor = "0.0";
 	public String RescaleOp_Offset = "0.0";
