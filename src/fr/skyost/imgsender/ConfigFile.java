@@ -5,8 +5,8 @@ import java.util.ArrayList;
 
 import org.bukkit.plugin.Plugin;
 
+import fr.skyost.imgsender.imgmessage.ImageChar;
 import fr.skyost.imgsender.utils.Config;
-import fr.skyost.imgsender.utils.ImgMessage.ImgChar;
 
 public class ConfigFile extends Config {
 	
@@ -15,6 +15,7 @@ public class ConfigFile extends Config {
 	public String Config_ChatFormat = "</sender/> :";
 	public String Config_CacheDirectory;
 	public boolean Config_TextCenter = false;
+	public boolean Config_NewAlgorithm = false;
 	
 	public String RescaleOp_ScaleFactor = "0.0";
 	public String RescaleOp_Offset = "0.0";
@@ -26,7 +27,7 @@ public class ConfigFile extends Config {
 	
 	public String Default_URL = "http://www.skyost.eu/wp-content/uploads/2013/12/IMGSender.png";
 	public int Default_Size = 15;
-	public ImgChar Default_Char = ImgChar.MEDIUM_SHADE;
+	public ImageChar Default_Char = ImageChar.MEDIUM_SHADE;
 	
 	public ConfigFile(Plugin plugin) {
 		CONFIG_FILE = new File(plugin.getDataFolder(), "config.yml");

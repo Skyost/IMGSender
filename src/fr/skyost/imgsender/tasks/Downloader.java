@@ -1,26 +1,25 @@
 package fr.skyost.imgsender.tasks;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 public class Downloader extends Thread {
 	
-	private String response;
-	private String site;
-	private File pathTo;
-	private CommandSender sender;
+	private final URL url;
+	private final File file;
+	private final CommandSender sender;
 	
-	public Downloader(final String site, final File pathTo, final CommandSender sender) {
-		this.site = site;
-		this.pathTo = pathTo;
+	private String response;
+	
+	public Downloader(final URL url, final File file, final CommandSender sender) {
+		this.url = url;
+		this.file = file;
 		this.sender = sender;
 	}
 
@@ -28,28 +27,24 @@ public class Downloader extends Thread {
 	public void run() {
 		try {
 			final String senderName = sender.getName();
-			if(!senderName.equals("CONSOLE")) {
-				Bukkit.getConsoleSender().sendMessage(senderName + " is downloading '" + site + "'...");
-			}
-			sender.sendMessage(ChatColor.GOLD + "Downloading " + site + "...");
-			final HttpURLConnection connection = (HttpURLConnection)new URL(site).openConnection();
+			sender.sendMessage(senderName.equals("CONSOLE") ? "Downloading '" + url + "'..." : senderName + " is downloading '" + url + "'...");
+			final HttpURLConnection connection = (HttpURLConnection)url.openConnection();
 			connection.addRequestProperty("User-Agent", "IMGSender by Skyost");
 			response = connection.getResponseCode() + " " + connection.getResponseMessage();
 			if(!response.startsWith("2")) {
 				return;
 			}
-			float totalDataRead = 0;
-			BufferedInputStream in = new BufferedInputStream(connection.getInputStream());
-			FileOutputStream fos = new FileOutputStream(pathTo);
-			BufferedOutputStream bout = new BufferedOutputStream(fos, 1024);
-			byte[] data = new byte[1024];
+			final InputStream inputStream = connection.getInputStream();
+			final FileOutputStream fileOutputStream = new FileOutputStream(file);
+			final BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream, 1024);
+			final byte[] data = new byte[1024];
 			int i = 0;
-			while((i = in.read(data, 0, 1024)) >= 0) {
-				totalDataRead = totalDataRead + i;
-				bout.write(data, 0, i);
-			}  
-			bout.close();
-			in.close();
+			while((i = inputStream.read(data, 0, 1024)) >= 0) {
+				bufferedOutputStream.write(data, 0, i);
+			}
+			bufferedOutputStream.close();
+			fileOutputStream.close();
+			inputStream.close();
 			sender.sendMessage(ChatColor.GOLD + "Done !");
 		}
 		catch(Exception ex) {

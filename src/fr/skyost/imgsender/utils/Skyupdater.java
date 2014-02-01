@@ -15,6 +15,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
+import org.bukkit.Server;
 import org.bukkit.plugin.Plugin;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -40,7 +41,6 @@ public class Skyupdater {
 	
 	private String apiKey;
 	private URL url;
-	private final Properties config = new Properties();
 	private File skyupdaterFolder;
 	private File updateFolder;
 	private Result result = Result.SUCCESS;
@@ -48,12 +48,12 @@ public class Skyupdater {
 	private String response;
 	private Thread updaterThread;
 	
-	private static final String SKYUPDATER_VERSION = "0.2.3";
+	private static final String SKYUPDATER_VERSION = "0.3.3";
 	
 	public enum Result {
 		
 		/**
-		 * A new version has been found, downloaded an will be loaded at the next server reload / restart.
+		 * A new version has been found, downloaded and will be loaded at the next server reload / restart.
 		 */
 		
 		SUCCESS,
@@ -133,59 +133,60 @@ public class Skyupdater {
 		this.pluginFile = pluginFile;
 		this.download = download;
 		this.announce = announce;
-		logger = plugin.getServer().getLogger();
-		updateFolder = plugin.getServer().getUpdateFolderFile();
+		final Server server = plugin.getServer();
+		logger = server.getLogger();
+		updateFolder = server.getUpdateFolderFile();
 		if(!updateFolder.exists()) {
 			updateFolder.mkdir();
 		}
-		final Properties systemProperties = System.getProperties();
-		skyupdaterFolder = new File(plugin.getDataFolder().getParentFile() + systemProperties.getProperty("file.separator", "/") + "Skyupdater");
+		skyupdaterFolder = new File(plugin.getDataFolder().getParentFile() + System.getProperty("file.separator", "/") + "Skyupdater");
 		if(!skyupdaterFolder.exists()) {
 			skyupdaterFolder.mkdir();
 		}
 		final File propertiesFile = new File(skyupdaterFolder, "skyupdater.properties");
+		final Properties config = new Properties();
 		if(propertiesFile.exists()) {
 			config.load(new FileInputStream(propertiesFile));
-			String key = config.getProperty("api-key", "NONE");
-			if(!(key.equalsIgnoreCase("NONE") || key.equals(""))) {
-				apiKey = key;
+			apiKey = config.getProperty("api-key", "NONE");
+			if(apiKey.equalsIgnoreCase("NONE") || apiKey.length() == 0) {
+				apiKey = null;
 			}
-			if(!config.getProperty("enable", "true").equalsIgnoreCase("true")) {
+			isEnabled = Boolean.valueOf(config.getProperty("enable", "true"));
+			if(!isEnabled) {
 				result = Result.DISABLED;
-				isEnabled = false;
 				if(announce) {
 					logger.log(Level.INFO, "[Skyupdater] Skyupdater is disabled.");
 				}
 			}
 		}
 		else {
-			final String lineSeparator = systemProperties.getProperty("line.separator", "\n");
+			final String lineSeparator = System.lineSeparator();
 			config.put("enable", "true");
 			config.put("api-key", "NONE");
-			final StringBuilder header = new StringBuilder();
-			header.append("Skyupdater configuration");
-			header.append(lineSeparator);
-			header.append(lineSeparator);
-			header.append("What is Skyupdater ?");
-			header.append(lineSeparator);
-			header.append("Skyupdater is a simple auto-updater created by Skyost (http://www.skyost.eu) for Bukkit plugins.");
-			header.append(lineSeparator);
-			header.append(lineSeparator);
-			header.append("So what is this file ?");
-			header.append(lineSeparator);
-			header.append("This file is just a config file for the auto-updater.");
-			header.append(lineSeparator);
-			header.append(lineSeparator);
-			header.append("Configuration :");
-			header.append(lineSeparator);
-			header.append("'enable': Choose if you want to enable the auto-updater.");
-			header.append(lineSeparator);
-			header.append("'api-key': OPTIONAL. Your BukkitDev API Key.");
-			header.append(lineSeparator);
-			header.append(lineSeparator);
-			header.append("Good game, I hope you will enjoy your plugins always up-to-date ;)");
-			header.append(lineSeparator);
-			config.store(new FileOutputStream(propertiesFile), header.toString());
+			final StringBuilder stringBuilder = new StringBuilder();
+			stringBuilder.append("Skyupdater configuration - http://www.skyost.eu/Skyupdater.txt");
+			stringBuilder.append(lineSeparator);
+			stringBuilder.append(lineSeparator);
+			stringBuilder.append("What is Skyupdater ?");
+			stringBuilder.append(lineSeparator);
+			stringBuilder.append("Skyupdater is a simple auto-updater created by Skyost (http://www.skyost.eu) for Bukkit plugins.");
+			stringBuilder.append(lineSeparator);
+			stringBuilder.append(lineSeparator);
+			stringBuilder.append("So what is this file ?");
+			stringBuilder.append(lineSeparator);
+			stringBuilder.append("This file is just a config file for the auto-updater.");
+			stringBuilder.append(lineSeparator);
+			stringBuilder.append(lineSeparator);
+			stringBuilder.append("Configuration :");
+			stringBuilder.append(lineSeparator);
+			stringBuilder.append("'enable': Choose if you want to enable the auto-updater.");
+			stringBuilder.append(lineSeparator);
+			stringBuilder.append("'api-key': OPTIONAL. Your BukkitDev API Key.");
+			stringBuilder.append(lineSeparator);
+			stringBuilder.append(lineSeparator);
+			stringBuilder.append("Good game, I hope you will enjoy your plugins always up-to-date ;)");
+			stringBuilder.append(lineSeparator);
+			config.store(new FileOutputStream(propertiesFile), stringBuilder.toString());
 		}
 		url = new URL("https://api.curseforge.com/servermods/files?projectIds=" + id);
 		updaterThread = new Thread(new UpdaterThread());
@@ -258,40 +259,49 @@ public class Skyupdater {
 	 * @throws IOException InputOutputException.
 	 */
 	
-	private void download(final String site, final File pathTo) throws IOException {
-		final HttpURLConnection con = (HttpURLConnection)new URL(site).openConnection();
-		con.addRequestProperty("User-Agent", "Skyupdater v" + SKYUPDATER_VERSION);
-		response = con.getResponseCode() + " " + con.getResponseMessage();
-		if(!response.startsWith("2")) {
-			if(announce) {
-				logger.log(Level.INFO, "[Skyupdater] Bad response : '" + response + "' when trying to download the update.");
+	private boolean download(final String site, final File pathTo) {
+		try {
+			final HttpURLConnection connection = (HttpURLConnection)new URL(site).openConnection();
+			connection.addRequestProperty("User-Agent", "Skyupdater v" + SKYUPDATER_VERSION);
+			response = connection.getResponseCode() + " " + connection.getResponseMessage();
+			if(!response.startsWith("2")) {
+				if(announce) {
+					logger.log(Level.INFO, "[Skyupdater] Bad response : '" + response + "' when trying to download the update.");
+				}
+				result = Result.ERROR;
+				return false;
 			}
-			result = Result.ERROR;
-			return;
-		}
-		final int size = con.getContentLength();
-		int lastPercent = 0;
-		int percent = 0;
-		float totalDataRead = 0;
-		final InputStream is = con.getInputStream();
-		final FileOutputStream fos = new java.io.FileOutputStream(pathTo);
-		final BufferedOutputStream bos = new BufferedOutputStream(fos, 1024);
-		byte[] data = new byte[1024];
-		int i=0;
-		while((i = is.read(data, 0, 1024)) >= 0) {
-			totalDataRead += i;
-			bos.write(data, 0, i);
-			if(announce) {
-				percent = ((int)((totalDataRead * 100) / size));
-				if(lastPercent != percent) {
-					lastPercent = percent;
-					logger.log(Level.INFO, "[Skyupdater] " + percent + "%");
+			final long size = connection.getContentLengthLong();
+			final long koSize = size / 1000;
+			long lastPercent = 0;
+			long percent = 0;
+			float totalDataRead = 0;
+			final InputStream inputStream = connection.getInputStream();
+			final FileOutputStream fileOutputStream = new FileOutputStream(pathTo);
+			final BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream, 1024);
+			final byte[] data = new byte[1024];
+			int i = 0;
+			while((i = inputStream.read(data, 0, 1024)) >= 0) {
+				totalDataRead += i;
+				bufferedOutputStream.write(data, 0, i);
+				if(announce) {
+					percent = ((long)(totalDataRead * 100) / size);
+					if(lastPercent != percent) {
+						lastPercent = percent;
+						logger.log(Level.INFO, "[Skyupdater] " + percent + "% of " + koSize + "ko...");
+					}
 				}
 			}
+			bufferedOutputStream.close();
+			fileOutputStream.close();
+			inputStream.close();
+			return true;
 		}
-		bos.close();
-		fos.close();
-		is.close();
+		catch(Exception ex) {
+			logger.log(Level.SEVERE, "Exception '" + ex + "' occured when downloading update. Please check your network connection.");
+			result = Result.ERROR;
+		}
+		return false;
 	}
 	
 	/**
@@ -300,12 +310,12 @@ public class Skyupdater {
 	 * @param version1 The version you want to compare to.
 	 * @param version2 The version you want to compare with.
 	 * 
-	 * @return <b>true</b> If <b>version1</b> is inferior than <b>version2</b>.
-	 * <br><b>false</b> If <b>version1</b> is superior or equals to <b>version2</b>.
+	 * @return <b>true</b> If <b>versionTo</b> is inferior than <b>versionWith</b>.
+	 * <br><b>false</b> If <b>versionTo</b> is superior or equals to <b>versionWith</b>.
 	 */
 	
-	private static boolean compare(final String version1, final String version2) {
-		final int cmp = normalisedVersion(version1).compareTo(normalisedVersion(version2));
+	public static final boolean compareVersions(final String versionTo, final String versionWith) {
+		final int cmp = normalisedVersion(versionTo, ".", 4).compareTo(normalisedVersion(versionWith, ".", 4));
 		if(cmp < 0) {
 			return false;
 		}
@@ -315,24 +325,32 @@ public class Skyupdater {
 		return false;
 	}
 	
-	private static String normalisedVersion(String version) {
-		return normalisedVersion(version, ".", 4);
-	}
+	/**
+	 * Get the formatted name of a version.
+	 * <br>Used for the method <b>compareVersions(...)</b> of this class.
+	 * 
+	 * @param version The version you want to format.
+	 * @param separator The separator between the numbers of this version.
+	 * @param maxWidth The max width of the formatted version.
+	 * 
+	 * @return A string which the formatted version of your version.
+	 * 
+	 * @author Peter Lawrey.
+	 */
 
-	private static String normalisedVersion(String version, String sep, int maxWidth) {
-		String[] split = Pattern.compile(sep, Pattern.LITERAL).split(version);
-		StringBuilder sb = new StringBuilder();
-		for(String s : split) {
-			sb.append(String.format("%" + maxWidth + 's', s));
+	private static final String normalisedVersion(final String version, final String separator, final int maxWidth) {
+		final StringBuilder stringBuilder = new StringBuilder();
+		for(final String normalised : Pattern.compile(separator, Pattern.LITERAL).split(version)) {
+			stringBuilder.append(String.format("%" + maxWidth + 's', normalised));
 		}
-		return sb.toString();
+		return stringBuilder.toString();
 	}
 	
 	/**
-	 * As the result of Updater output depends on the thread's completion, it is necessary to wait for the thread to finish
-	 * before allowing anyone to check the result.
+	 * As the result of Updater output depends on the thread's completion,
+	 * <br>it is necessary to wait for the thread to finish before allowing anyone to check the result.
 	 * 
-	 * @author Gravity from his Updater.
+	 * @author <b>Gravity</b> from his Updater.
 	 */
 	
 	private void waitForThread() {
@@ -346,7 +364,7 @@ public class Skyupdater {
 		}
 	}
 
-	public class UpdaterThread implements Runnable {
+	private class UpdaterThread implements Runnable {
 	
 		@Override
 		public void run() {
@@ -360,27 +378,30 @@ public class Skyupdater {
 					response = con.getResponseCode() + " " + con.getResponseMessage();
 					if(!response.startsWith("2")) {
 						if(announce) {
-							logger.log(Level.INFO, "[Skyupdater] Bad response : '" + response + "'. Maybe your API Key is invalid ?");
+							logger.log(Level.INFO, "[Skyupdater] Bad response : '" + response + (response.startsWith("402") ? "'." : "'. Maybe your API Key is invalid ?"));
 						}
 						result = Result.ERROR;
 						return;
 					}
-					final BufferedReader reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
-					final String response = reader.readLine();
+					final String response = new BufferedReader(new InputStreamReader(con.getInputStream())).readLine();
 					if(!response.equals("[]")) {
-						final JSONArray array = (JSONArray)JSONValue.parseWithException(response);
-						final JSONObject latest = (JSONObject)array.get(array.size() - 1);
-						updateData = new String[] {String.valueOf(latest.get("downloadUrl")), String.valueOf(latest.get("fileName")), String.valueOf(latest.get("gameVersion")), String.valueOf(latest.get("name")), String.valueOf(latest.get("releaseType"))};
-						if(compare(updateData[3].split(" v")[1], plugin.getDescription().getVersion()) && updateData[0].toLowerCase().endsWith(".jar")) {
+						final JSONArray jsonArray = (JSONArray)JSONValue.parseWithException(response);
+						final JSONObject jsonObject = (JSONObject)jsonArray.get(jsonArray.size() - 1);
+						updateData = new String[] {String.valueOf(jsonObject.get("downloadUrl")), String.valueOf(jsonObject.get("fileName")), String.valueOf(jsonObject.get("gameVersion")), String.valueOf(jsonObject.get("name")), String.valueOf(jsonObject.get("releaseType"))};
+						if(compareVersions(updateData[3].split(" v")[1], plugin.getDescription().getVersion()) && updateData[0].toLowerCase().endsWith(".jar")) {
 							result = Result.UPDATE_AVAILABLE;
 							if(download) {
 								if(announce) {
 									logger.log(Level.INFO, "[Skyupdater] Downloading a new update : " + updateData[3] + "...");
 								}
-								download(updateData[0], new File(updateFolder, pluginFile.getName()));
-								result = Result.SUCCESS;
-								if(announce) {
-									logger.log(Level.INFO, "[Skyupdater] The update of '" + plugin.getName() + "' has been downloaded and installed. It will be loaded at the next server load / reload.");
+								if(download(updateData[0], new File(updateFolder, pluginFile.getName()))) {
+									result = Result.SUCCESS;
+									if(announce) {
+										logger.log(Level.INFO, "[Skyupdater] The update of '" + plugin.getName() + "' has been downloaded and installed. It will be loaded at the next server load / reload.");
+									}
+								}
+								else {
+									result = Result.ERROR;
 								}
 							}
 							else if(announce) {
@@ -396,12 +417,12 @@ public class Skyupdater {
 						}
 					}
 					else {
-						logger.log(Level.SEVERE, "[Skyupdater] The ID '" + id + "' was not found (or no files found for this project) !");
+						logger.log(Level.SEVERE, "[Skyupdater] The ID '" + id + "' was not found (or no files found for this project) ! Maybe the author of '" + plugin.getName() + "' has misconfigured his plugin ?");
 						result = Result.ERROR;
 					}
 				}
-				catch (Exception ex) {
-					ex.printStackTrace();
+				catch(Exception ex) {
+					logger.log(Level.SEVERE, "Exception '" + ex + "'. Please check your network connection.");
 					result = Result.ERROR;
 				}
 			}
