@@ -21,6 +21,8 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
+import com.google.common.base.Joiner;
+
 /**
  * A simple auto-updater.
  * <br>Please follow this link to read more about checking for updates in your plugin : http://url.skyost.eu/3.
@@ -48,7 +50,7 @@ public class Skyupdater {
 	private String response;
 	private Thread updaterThread;
 	
-	private static final String SKYUPDATER_VERSION = "0.3.3";
+	private static final String SKYUPDATER_VERSION = "0.3.5";
 	
 	public enum Result {
 		
@@ -384,7 +386,7 @@ public class Skyupdater {
 						return;
 					}
 					final String response = new BufferedReader(new InputStreamReader(con.getInputStream())).readLine();
-					if(!response.equals("[]")) {
+					if(response != null && !response.equals("[]")) {
 						final JSONArray jsonArray = (JSONArray)JSONValue.parseWithException(response);
 						final JSONObject jsonObject = (JSONObject)jsonArray.get(jsonArray.size() - 1);
 						updateData = new String[] {String.valueOf(jsonObject.get("downloadUrl")), String.valueOf(jsonObject.get("fileName")), String.valueOf(jsonObject.get("gameVersion")), String.valueOf(jsonObject.get("name")), String.valueOf(jsonObject.get("releaseType"))};
@@ -417,7 +419,7 @@ public class Skyupdater {
 						}
 					}
 					else {
-						logger.log(Level.SEVERE, "[Skyupdater] The ID '" + id + "' was not found (or no files found for this project) ! Maybe the author of '" + plugin.getName() + "' has misconfigured his plugin ?");
+						logger.log(Level.SEVERE, "[Skyupdater] The ID '" + id + "' was not found (or no files found for this project) ! Maybe the author(s) (" + Joiner.on(", ").join(plugin.getDescription().getAuthors()) + ") of '" + plugin.getName() + "' has misconfigured his plugin ?");
 						result = Result.ERROR;
 					}
 				}

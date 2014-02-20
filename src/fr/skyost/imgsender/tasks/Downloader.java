@@ -27,7 +27,7 @@ public class Downloader extends Thread {
 	public void run() {
 		try {
 			final String senderName = sender.getName();
-			sender.sendMessage(senderName.equals("CONSOLE") ? "Downloading '" + url + "'..." : senderName + " is downloading '" + url + "'...");
+			sender.sendMessage(senderName.equals("CONSOLE") ? senderName + " is downloading '" + url + "'..." : "Downloading '" + url + "'...");
 			final HttpURLConnection connection = (HttpURLConnection)url.openConnection();
 			connection.addRequestProperty("User-Agent", "IMGSender by Skyost");
 			response = connection.getResponseCode() + " " + connection.getResponseMessage();
