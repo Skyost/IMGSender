@@ -1,6 +1,19 @@
 package fr.skyost.imgsender.utils;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+
 public class Utils {
+	
+	public static final URL createURLWithoutException(final String url) {
+		try {
+			return new URL(url);
+		}
+		catch(MalformedURLException ex) {
+			ex.printStackTrace();
+		}
+		return null;
+	}
 	
 	public static final boolean isFloat(final String floatStr) {
 		try {

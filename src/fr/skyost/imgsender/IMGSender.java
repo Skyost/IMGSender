@@ -1,11 +1,13 @@
 package fr.skyost.imgsender;
 
 import java.io.File;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -31,6 +33,7 @@ public class IMGSender extends JavaPlugin {
 	@Override
 	public final void onEnable() {
 		try {
+			final ConsoleCommandSender console = Bukkit.getConsoleSender();
 			config = new ConfigFile(this);
 			config.init();
 			cacheDir = new File(config.Config_CacheDirectory);
@@ -39,7 +42,7 @@ public class IMGSender extends JavaPlugin {
 			}
 			if(config.ImageSize_Min < 5) {
 				config.ImageSize_Min = 5;
-				Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "The MinImageSize must be superior than 5 ! It has been reverted back to 5.");
+				console.sendMessage(ChatColor.RED + "The MinImageSize must be superior than 5 ! It has been reverted back to 5.");
 			}
 			if(config.Config_EnableUpdater) {
 				new Skyupdater(this, 70595, this.getFile(), true, true);
@@ -49,8 +52,15 @@ public class IMGSender extends JavaPlugin {
 				config.RescaleOp_Offset = "0.0";
 				config.RescaleOp_ScaleFactor = "0.0";
 			}
-			new MetricsLite(this).start();
+			try {
+				new URL(IMGSender.config.Default_URL);
+			}
+			catch(MalformedURLException ex) {
+				IMGSender.config.Default_URL = "http://www.skyost.eu/wp-content/uploads/2013/12/IMGSender.png";
+				console.sendMessage(ChatColor.RED + "The default URL is not valid ! It has been reverted to default.");
+			}
 			config.save();
+			new MetricsLite(this).start();
 			final PluginCommand pluginCommand = this.getCommand("img"); 
 			pluginCommand.setUsage(ChatColor.RED + "/img [url] [size] [char] [text] [player].");
 			pluginCommand.setExecutor(new CommandsExecutor());

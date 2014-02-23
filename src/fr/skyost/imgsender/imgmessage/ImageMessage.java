@@ -7,6 +7,8 @@ import org.bukkit.util.ChatPaginator;
 import fr.skyost.imgsender.utils.Utils;
 
 import java.awt.*;
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
 
@@ -17,9 +19,11 @@ import java.util.HashMap;
  */
 public class ImageMessage {
 	
+	private final static char TRANSPARENT_CHAR = ' ';
+	
 	private static final Color[] COLORS = {new Color(0, 0, 0), new Color(0, 0, 170), new Color(0, 170, 0), new Color(0, 170, 170), new Color(170, 0, 0), new Color(170, 0, 170), new Color(255, 170, 0), new Color(170, 170, 170), new Color(85, 85, 85), new Color(85, 85, 255), new Color(85, 255, 85), new Color(85, 255, 255), new Color(255, 85, 85), new Color(255, 85, 255), new Color(255, 255, 85), new Color(255, 255, 255),};
 	private static final HashMap<Color, ChatColor> oldColorMap = new HashMap<Color, ChatColor>() {
-		private static final long serialVersionUID = -3269413344200925155L; {	
+		private static final long serialVersionUID = 1L; {	
 			put(new Color(0, 0, 0), ChatColor.BLACK);
 			put(new Color(0, 0, 170), ChatColor.DARK_BLUE);
       	 	put(new Color(0, 170, 0), ChatColor.DARK_GREEN);
@@ -108,7 +112,7 @@ public class ImageMessage {
 			for(int x = 0; x < resized.getWidth(); x++) {
 				for(int y = 0; y < resized.getHeight(); y++) {
 					int rgb = resized.getRGB(x, y);
-					ChatColor closest = getClosestChatColor(new Color(rgb));
+					ChatColor closest = getClosestChatColor(new Color(rgb, true));
 					chatImg[x][y] = closest;
 				}
 			}
@@ -138,7 +142,8 @@ public class ImageMessage {
 		for(int y = 0; y < colors[0].length; y++) {
 			String line = "";
 			for(int x = 0; x < colors.length; x++) {
-				line += colors[x][y].toString() + imgchar;
+				final ChatColor color = colors[x][y];
+				line += (color != null) ? colors[x][y].toString() + imgchar : TRANSPARENT_CHAR;
 			}
 			lines[y] = line + ChatColor.RESET;
 		}
@@ -146,15 +151,9 @@ public class ImageMessage {
 	}
 	
 	private static final BufferedImage resizeImage(final BufferedImage originalImage, final int width, final int height) {
-		final BufferedImage resizedImage = new BufferedImage(width, height, 6);
-		final Graphics2D g = resizedImage.createGraphics();
-		g.drawImage(originalImage, 0, 0, width, height, null);
-		g.dispose();
-		g.setComposite(AlphaComposite.Src);
-		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-		g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-		return resizedImage;
+		final AffineTransform af = new AffineTransform();
+		af.scale(width / (double) originalImage.getWidth(), height / (double) originalImage.getHeight());
+		return new AffineTransformOp(af, AffineTransformOp.TYPE_NEAREST_NEIGHBOR).filter(originalImage, null);
 	}
 	
 	private static final double getDistance(final Color c1, final Color c2) {
@@ -174,9 +173,9 @@ public class ImageMessage {
 	}
 	
 	private static final ChatColor getClosestChatColor(final Color color) {
-		if(color.getAlpha() < 128)
-			return ChatColor.BLACK;
-		
+		if(color.getAlpha() < 128) {
+			return null;
+		}
 		int index = 0;
 		double best = -1;
 		
