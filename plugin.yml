@@ -1,5 +1,5 @@
 name: IMGSender
-version: 10.0
+version: 1.0
 main: fr.skyost.imgsender.IMGSender
 author: Skyost
 website: http://www.skyost.eu
@@ -8,6 +8,10 @@ commands:
   aliases: [image, pic, picture]
   description: Main command to send an image.
   usage: /img [url] [size] [char] [text] [player].
+ img-item:
+  aliases: [image-item, pic-item, picture-item]
+  description: Main command to apply an image to an item.
+  usage: /img-item [url] [size] [char] [text].
 permissions:
  img.*:
   description: Give you all IMGSender permissions.
@@ -16,6 +20,7 @@ permissions:
    img.broadcast.receive: true
    img.private.send: true
    img.private.receive: true
+   img.item: true
  img.broadcast.*:
   description: Give you all "broadcast" permissions.
   children:
@@ -28,14 +33,17 @@ permissions:
    img.private.receive: true
  img.private.send:
   default: true
-  description: Allow you to send an image to a single player.
+  description: Allows you to send an image to a single player.
  img.broadcast.send:
   default: true
-  description: Allow you to broadcast an image.
+  description: Allows you to broadcast an image.
  img.private.receive:
   default: true
-  description: Allow you to receive an image sent privately.
+  description: Allows you to receive an image sent privately.
  img.broadcast.receive:
   default: true
-  description: Allow you to receive a broadcasted image.
+  description: Allows you to receive a broadcasted image.
+ img.item:
+  default: true
+  description: Allows you to apply an image to an item.
  

@@ -6,6 +6,9 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 
@@ -13,6 +16,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+
+import com.google.common.base.Joiner;
 
 import fr.skyost.imgsender.IMGSender;
 import fr.skyost.imgsender.imgmessage.ImageChar;
@@ -24,7 +31,7 @@ import fr.skyost.imgsender.imgmessage.ImageMessage;
  * @author Skyost.
  */
 
-public class IMGManager extends Thread {
+public class IMGTask extends Thread {
 	
 	private final CommandSender sender;
 	private final String url;
@@ -32,6 +39,7 @@ public class IMGManager extends Thread {
 	private final String imageChar;
 	private final String[] text;
 	private final Player player;
+	private final ItemStack itemStack;
 	
 	/**
 	 * Every arguments are Strings because it is more convenient to use in a CommandExecutor.
@@ -43,15 +51,17 @@ public class IMGManager extends Thread {
 	 * @param imageChar The look of the "texted" image.
 	 * @param text The text to append on the image.
 	 * @param player The player who will receive the image.
+	 * @param itemStack If is /img or /img-item.
 	 */
 	
-	public IMGManager(final CommandSender sender, final String url, final String size, final String imageChar, final String[] text, final Player player) {
+	public IMGTask(final CommandSender sender, final String url, final String size, final String imageChar, final String[] text, final Player player, final ItemStack itemStack) {
 		this.sender = sender;
 		this.url = url == null ? IMGSender.config.Default_URL : url;
-		this.size = size == null ? String.valueOf(IMGSender.config.Default_Size) : size;
 		this.imageChar = imageChar == null ? IMGSender.config.Default_Char.name() : imageChar;
 		this.text = text;
 		this.player = player;
+		this.itemStack = itemStack;
+		this.size = size == null ? (itemStack == null ? String.valueOf(IMGSender.config.Default_Size) : (IMGSender.config.Default_Size > 30 ? "30" : String.valueOf(IMGSender.config.Default_Size))) : size;
 	}
 	
 	@Override
@@ -65,8 +75,9 @@ public class IMGManager extends Thread {
 				}
 			}
 			final int size = Integer.parseInt(this.size);
-			if(size < IMGSender.config.ImageSize_Min || size > IMGSender.config.ImageSize_Max) {
-				sender.sendMessage(ChatColor.RED + "The image size must be between '" + IMGSender.config.ImageSize_Min + "' and '" + IMGSender.config.ImageSize_Max + "' !");
+			final int maxSize = itemStack == null ? IMGSender.config.ImageSize_Max : (IMGSender.config.ImageSize_Max > 30 ? 30 : IMGSender.config.ImageSize_Max);
+			if(size < IMGSender.config.ImageSize_Min || size > maxSize) {
+				sender.sendMessage(ChatColor.RED + "The image size must be between '" + IMGSender.config.ImageSize_Min + "' and '" + maxSize + (itemStack == null ? "'" : "' (limited by items)") + " !");
 				return;
 			}
 			final ImageChar imageChar = ImageChar.valueOf(this.imageChar);
@@ -112,36 +123,55 @@ public class IMGManager extends Thread {
 			final ChatColor[][] colors = ImageMessage.toChatColorArray(bufferedImage, size, IMGSender.config.Config_UseNewAlgorithm);
 			String[] lines = ImageMessage.toImgMessage(colors, imageChar.getChar());
 			if(text != null) {
-				if(IMGSender.config.Config_TextCenter) {
-					lines = ImageMessage.appendCenteredTextToImg(lines, text);
+				if(itemStack == null) {
+					if(IMGSender.config.Config_TextCenter) {
+						lines = ImageMessage.appendCenteredTextToImg(lines, text);
+					}
+					else {
+						lines = ImageMessage.appendTextToImg(lines, text);
+					}
 				}
 				else {
-					lines = ImageMessage.appendTextToImg(lines, text);
+					final List<String> listedLines = new ArrayList<String>(Arrays.asList(lines));
+					listedLines.add("");
+					listedLines.add(Joiner.on(' ').join(text));
+					lines = listedLines.toArray(new String[listedLines.size()]);
 				}
 			}
-			if(player != null) {
-				if(!sender.hasPermission("img.private.send")) {
-					sender.sendMessage(ChatColor.RED + "You do not have permission to perform this action.");
-					return;
+			if(itemStack == null) {
+				if(player != null) {
+					if(!sender.hasPermission("img.private.send")) {
+						sender.sendMessage(ChatColor.RED + "You do not have permission to perform this action.");
+						return;
+					}
+					if(!player.hasPermission("img.private.receive")) {
+						sender.sendMessage(ChatColor.RED + player.getName() + " does not have the right to receive private images.");
+						return;
+					}
+					player.sendMessage(senderLine);
+					for(final String line : lines) {
+						player.sendMessage(line);
+					}
 				}
-				if(!player.hasPermission("img.private.receive")) {
-					sender.sendMessage(ChatColor.RED + player.getName() + " does not have the right to receive private images.");
-					return;
-				}
-				player.sendMessage(senderLine);
-				for(final String line : lines) {
-					player.sendMessage(line);
+				else {
+					if(!sender.hasPermission("img.broadcast.send")) {
+						sender.sendMessage(ChatColor.RED + "You do not have permission to perform this action.");
+						return;
+					}
+					Bukkit.broadcast(senderLine, "img.broadcast.receive");
+					for(final String line : lines) {
+						Bukkit.broadcast(line, "img.broadcast.receive");
+					}
 				}
 			}
 			else {
-				if(!sender.hasPermission("img.broadcast.send")) {
+				if(!sender.hasPermission("img.item")) {
 					sender.sendMessage(ChatColor.RED + "You do not have permission to perform this action.");
 					return;
 				}
-				Bukkit.broadcast(senderLine, "img.broadcast.receive");
-				for(final String line : lines) {
-					Bukkit.broadcast(line, "img.broadcast.receive");
-				}
+				final ItemMeta itemMeta = itemStack.getItemMeta();
+				itemMeta.setLore(Arrays.asList(lines));
+				itemStack.setItemMeta(itemMeta);
 			}
 		}
 		catch(MalformedURLException ex) {

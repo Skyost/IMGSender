@@ -61,9 +61,10 @@ public class IMGSender extends JavaPlugin {
 			}
 			config.save();
 			new MetricsLite(this).start();
-			final PluginCommand pluginCommand = this.getCommand("img"); 
-			pluginCommand.setUsage(ChatColor.RED + "/img [url] [size] [char] [text] [player].");
-			pluginCommand.setExecutor(new CommandsExecutor());
+			for(final PluginCommand pluginCommand : new PluginCommand[]{this.getCommand("img"), this.getCommand("img-item")}) {
+				pluginCommand.setUsage(ChatColor.RED + pluginCommand.getDescription());
+				pluginCommand.setExecutor(new CommandsExecutor());
+			}
 		}
 		catch(Exception ex) {
 			ex.printStackTrace();
